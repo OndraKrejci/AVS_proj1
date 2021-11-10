@@ -4,29 +4,84 @@
  * @brief Implementation of Mandelbrot calculator that uses SIMD paralelization over lines
  * @date DATE
  */
+
 #include <iostream>
 #include <string>
 #include <vector>
 #include <algorithm>
 
 #include <stdlib.h>
+#include <cstring>
 
 
 #include "LineMandelCalculator.h"
-
 
 LineMandelCalculator::LineMandelCalculator (unsigned matrixBaseSize, unsigned limit) :
 	BaseMandelCalculator(matrixBaseSize, limit, "LineMandelCalculator")
 {
 	// @TODO allocate & prefill memory
+	data = (int*) _mm_malloc(height * width * sizeof(int), 64);
+	lineR = (float*) _mm_malloc(width * sizeof(float), 64);
+	lineI = (float*) _mm_malloc(width * sizeof(float), 64);
+	defaultLineR = (float*) _mm_malloc(width * sizeof(float), 64);
+
+	#ifdef USE_ZERO
+	memset(data, 0, height * width * sizeof(int));
+	#else
+	for(int i = 0; i < height * width; i++){
+		data[i] = limit;
+	}
+	#endif
 }
 
 LineMandelCalculator::~LineMandelCalculator() {
 	// @TODO cleanup the memory
+	_mm_free(data);
+	_mm_free(lineR);
+	_mm_free(lineI);
+	_mm_free(defaultLineR);
+	data = NULL;
+	lineR = NULL;
+	lineI = NULL;
+	defaultLineR = NULL;
 }
 
 
 int * LineMandelCalculator::calculateMandelbrot () {
 	// @TODO implement the calculator & return array of integers
-	return NULL;
+	for (int i = 0; i < height; i++) // radky
+	{
+		const float defaultI = y_start + i * dy;
+		for (int j = 0; j < width; j++){ // sloupce
+			defaultLineR[j] = x_start + j * dx;
+			lineR[j] = defaultLineR[j]; // current real values
+			lineI[j] = defaultI; // current imaginary values
+		}
+
+		for (int k = 0; k < limit; k++) // iterace
+		{
+			#pragma omp simd
+			for (int j = 0; j < width; j++) // sloupce
+			{
+				const float r2 = lineR[j] * lineR[j];
+				const float i2 = lineI[j] * lineI[j];
+
+				#ifdef USE_ZERO
+				if (r2 + i2 < 4.0f)
+				{
+					data[i * width + j]++;
+				}
+				#else
+				if (r2 + i2 > 4.0f && data[i * width + j] == limit)
+				{
+					data[i * width + j] = k;
+				}
+				#endif
+
+				lineI[j] = 2.0f * lineR[j] * lineI[j] + defaultI;
+				lineR[j] = r2 - i2 + defaultLineR[j];
+			}
+		}
+	}
+	return data;
 }

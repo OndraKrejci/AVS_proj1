@@ -1,0 +1,6 @@
+
+*.png
+*.npz
+
+build/
+.vscode/

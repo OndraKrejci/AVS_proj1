@@ -16,4 +16,8 @@ public:
 
 private:
     // @TODO add all internal parameters
+    int *data;
+    float* lineR;
+    float* lineI;
+    float* defaultLineR;
 };

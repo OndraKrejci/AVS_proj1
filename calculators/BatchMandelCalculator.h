@@ -4,6 +4,7 @@
  * @brief Implementation of Mandelbrot calculator that uses SIMD paralelization over small batches
  * @date DATE
  */
+
 #ifndef BATCHMANDELCALCULATOR_H
 #define BATCHMANDELCALCULATOR_H
 
@@ -18,6 +19,11 @@ public:
 
 private:
     // @TODO add all internal parameters
+    int *data;
+    float* defaultRowR;
+    float* defaultColumnI;
+    float* batchR;
+    float* batchI;
 };
 
 #endif
