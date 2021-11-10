@@ -24,11 +24,7 @@ LineMandelCalculator::LineMandelCalculator (unsigned matrixBaseSize, unsigned li
 	lineI = (float*) _mm_malloc(width * sizeof(float), 64);
 	defaultLineR = (float*) _mm_malloc(width * sizeof(float), 64);
 
-	#ifdef USE_ZERO
 	memset(data, 0, height * width * sizeof(int));
-	#else
-	std::fill_n(data, height * width, limit);
-	#endif
 }
 
 LineMandelCalculator::~LineMandelCalculator() {
@@ -64,12 +60,7 @@ int* LineMandelCalculator::calculateMandelbrot(){
 				const float r2 = lineR[j] * lineR[j];
 				const float i2 = lineI[j] * lineI[j];
 
-				#ifdef USE_ZERO
 				rowData[j] += (r2 + i2 < 4.0f) ? 1 : 0;
-				#else
-				const int val = rowData[j];
-				rowData[j] = (r2 + i2 > 4.0f && val == limit) ? k : val;
-				#endif
 
 				lineI[j] = 2.0f * lineR[j] * lineI[j] + defaultI;
 				lineR[j] = r2 - i2 + defaultLineR[j];

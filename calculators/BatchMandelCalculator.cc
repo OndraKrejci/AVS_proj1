@@ -17,9 +17,7 @@
 
 #include "BatchMandelCalculator.h"
 
-#define USE_ZERO
-
-constexpr int BATCH_SIZE = 1;
+constexpr int BATCH_SIZE = 64;
 
 BatchMandelCalculator::BatchMandelCalculator (unsigned matrixBaseSize, unsigned limit) :
 	BaseMandelCalculator(matrixBaseSize, limit, "BatchMandelCalculator")
@@ -33,11 +31,7 @@ BatchMandelCalculator::BatchMandelCalculator (unsigned matrixBaseSize, unsigned 
 	batchDefaultR = (float*) _mm_malloc(BATCH_SIZE * sizeof(float), 64);
 	batchDefaultI = (float*) _mm_malloc(BATCH_SIZE * sizeof(float), 64);
 
-	#ifdef USE_ZERO
 	memset(data, 0, height * width * sizeof(int));
-	#else
-	std::fill_n(data, height * width, limit);
-	#endif
 }
 
 BatchMandelCalculator::~BatchMandelCalculator() {
@@ -84,17 +78,13 @@ int* BatchMandelCalculator::calculateMandelbrot(){
 				const float r2 = batchR[i] * batchR[i];
 				const float i2 = batchI[i] * batchI[i];
 
-				#ifdef USE_ZERO
 				data[batchStartIdx + i] += (r2 + i2 <= 4.0f) ? 1 : (finished++, 0);
-				#else
-				data[batchStartIdx + i] = (r2 + i2 > 4.0f && data[batchStartIdx + i] == limit) ? k : data[batchStartIdx + i];
-				#endif
 
 				batchI[i] = 2.0f * batchR[i] * batchI[i] + batchDefaultI[i];
 				batchR[i] = r2 - i2 + batchDefaultR[i];
 			}
 
-			//if(finished == BATCH_SIZE) break;
+			if(finished == BATCH_SIZE) break;
 		}
 	}
 
@@ -119,17 +109,13 @@ int* BatchMandelCalculator::calculateMandelbrot(){
 			const float r2 = batchR[i] * batchR[i];
 			const float i2 = batchI[i] * batchI[i];
 
-			#ifdef USE_ZERO
 			data[batchStartIdx + i] += (r2 + i2 <= 4.0f) ? 1 : (finished++, 0);
-			#else
-			data[batchStartIdx + i] = (r2 + i2 > 4.0f && data[batchStartIdx + i] == limit) ? k : data[batchStartIdx + i];
-			#endif
 
 			batchI[i] = 2.0f * batchR[i] * batchI[i] + batchDefaultI[i];
 			batchR[i] = r2 - i2 + batchDefaultR[i];
 		}
 
-		//if(finished == BATCH_SIZE) break;
+		if(finished == BATCH_SIZE) break;
 	}
 	return data;
 
