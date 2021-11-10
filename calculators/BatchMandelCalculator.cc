@@ -13,9 +13,13 @@
 #include <stdlib.h>
 #include <stdexcept>
 
+#include <cstring>
+
 #include "BatchMandelCalculator.h"
 
-#define BATCH_SIZE 64
+#define USE_ZERO
+
+constexpr int BATCH_SIZE = 1;
 
 BatchMandelCalculator::BatchMandelCalculator (unsigned matrixBaseSize, unsigned limit) :
 	BaseMandelCalculator(matrixBaseSize, limit, "BatchMandelCalculator")
@@ -26,13 +30,13 @@ BatchMandelCalculator::BatchMandelCalculator (unsigned matrixBaseSize, unsigned 
 	defaultColumnI = (float*) _mm_malloc(height * sizeof(float), 64);
 	batchR = (float*) _mm_malloc(BATCH_SIZE * sizeof(float), 64);
 	batchI = (float*) _mm_malloc(BATCH_SIZE * sizeof(float), 64);
+	batchDefaultR = (float*) _mm_malloc(BATCH_SIZE * sizeof(float), 64);
+	batchDefaultI = (float*) _mm_malloc(BATCH_SIZE * sizeof(float), 64);
 
 	#ifdef USE_ZERO
 	memset(data, 0, height * width * sizeof(int));
 	#else
-	for(int i = 0; i < height * width; i++){
-		data[i] = limit;
-	}
+	std::fill_n(data, height * width, limit);
 	#endif
 }
 
@@ -60,40 +64,73 @@ int* BatchMandelCalculator::calculateMandelbrot(){
 		defaultColumnI[i] = y_start + i * dy;
 	}
 
-	for(int batch = 0; batch < (width * height / BATCH_SIZE); batch++){ // batches
-		for(int i = (batch * BATCH_SIZE); i < (batch * BATCH_SIZE + BATCH_SIZE); i++){
-			const int real = i % width;
-			const int imag = i / width;
-			const int batchIdx = i % BATCH_SIZE;
-			batchR[batchIdx] = defaultRowR[real];
-			batchI[batchIdx] = defaultColumnI[imag];
+	const int batchCount = (width * height / BATCH_SIZE);
+	for(int batch = 0; batch < batchCount; batch++){ // batches
+		const int batchStartIdx = batch * BATCH_SIZE;
+
+		for(int i = 0; i < BATCH_SIZE; i++){
+			const int real = (batchStartIdx + i) % width;
+			const int imag = (batchStartIdx + i) / width;
+			batchR[i] = defaultRowR[real];
+			batchI[i] = defaultColumnI[imag];
+			batchDefaultR[i] = defaultRowR[real];
+			batchDefaultI[i] = defaultColumnI[imag];
 		}
 
 		for(int k = 0; k < limit; k++){ // iterace
-			#pragma omp simd
-			for(int i = (batch * BATCH_SIZE); i < (batch * BATCH_SIZE + BATCH_SIZE); i++){ // batch
-				const int real = i % width;
-				const int imag = i / width;
-				const int batchIdx = i % BATCH_SIZE;
-				const float r2 = batchR[batchIdx] * batchR[batchIdx];
-				const float i2 = batchI[batchIdx] * batchI[batchIdx];
+			unsigned finished = 0;
+			#pragma omp simd reduction(+:finished) simdlen(32)
+			for(int i = 0; i < BATCH_SIZE; i++){ // batch
+				const float r2 = batchR[i] * batchR[i];
+				const float i2 = batchI[i] * batchI[i];
 
 				#ifdef USE_ZERO
-				if (r2 + i2 < 4.0f)
-				{
-					data[i]++;
-				}
+				data[batchStartIdx + i] += (r2 + i2 <= 4.0f) ? 1 : (finished++, 0);
 				#else
-				if (r2 + i2 > 4.0f && data[i] == limit)
-				{
-					data[i] = k;
-				}
+				data[batchStartIdx + i] = (r2 + i2 > 4.0f && data[batchStartIdx + i] == limit) ? k : data[batchStartIdx + i];
 				#endif
 
-				batchI[batchIdx] = 2.0f * batchR[batchIdx] * batchI[batchIdx] + defaultColumnI[imag];
-				batchR[batchIdx] = r2 - i2 + defaultRowR[real];
+				batchI[i] = 2.0f * batchR[i] * batchI[i] + batchDefaultI[i];
+				batchR[i] = r2 - i2 + batchDefaultR[i];
 			}
+
+			//if(finished == BATCH_SIZE) break;
 		}
 	}
+
+	// dokroceni
+	const int batchStartIdx = batchCount * BATCH_SIZE;
+	const int remains = (width * height) - batchStartIdx;
+
+	for(int i = 0; i < remains; i++){
+		const int real = (batchStartIdx + i) % width;
+		const int imag = (batchStartIdx + i) / width;
+		batchR[i] = defaultRowR[real];
+		batchI[i] = defaultColumnI[imag];
+		batchDefaultR[i] = defaultRowR[real];
+		batchDefaultI[i] = defaultColumnI[imag];
+	}
+
+	for(int k = 0; k < limit; k++){ // iterace
+		unsigned finished = 0;
+		
+		#pragma omp simd reduction(+:finished) simdlen(32)
+		for(int i = 0; i < remains; i++){ // batch
+			const float r2 = batchR[i] * batchR[i];
+			const float i2 = batchI[i] * batchI[i];
+
+			#ifdef USE_ZERO
+			data[batchStartIdx + i] += (r2 + i2 <= 4.0f) ? 1 : (finished++, 0);
+			#else
+			data[batchStartIdx + i] = (r2 + i2 > 4.0f && data[batchStartIdx + i] == limit) ? k : data[batchStartIdx + i];
+			#endif
+
+			batchI[i] = 2.0f * batchR[i] * batchI[i] + batchDefaultI[i];
+			batchR[i] = r2 - i2 + batchDefaultR[i];
+		}
+
+		//if(finished == BATCH_SIZE) break;
+	}
 	return data;
+
 }

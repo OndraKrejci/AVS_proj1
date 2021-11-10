@@ -24,6 +24,8 @@ private:
     float* defaultColumnI;
     float* batchR;
     float* batchI;
+    float* batchDefaultR;
+    float* batchDefaultI;
 };
 
 #endif

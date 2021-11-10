@@ -13,7 +13,6 @@
 #include <stdlib.h>
 #include <cstring>
 
-
 #include "LineMandelCalculator.h"
 
 LineMandelCalculator::LineMandelCalculator (unsigned matrixBaseSize, unsigned limit) :
@@ -28,9 +27,7 @@ LineMandelCalculator::LineMandelCalculator (unsigned matrixBaseSize, unsigned li
 	#ifdef USE_ZERO
 	memset(data, 0, height * width * sizeof(int));
 	#else
-	for(int i = 0; i < height * width; i++){
-		data[i] = limit;
-	}
+	std::fill_n(data, height * width, limit);
 	#endif
 }
 
@@ -47,35 +44,31 @@ LineMandelCalculator::~LineMandelCalculator() {
 }
 
 
-int * LineMandelCalculator::calculateMandelbrot () {
+int* LineMandelCalculator::calculateMandelbrot(){
 	// @TODO implement the calculator & return array of integers
-	for (int i = 0; i < height; i++) // radky
-	{
-		const float defaultI = y_start + i * dy;
-		for (int j = 0; j < width; j++){ // sloupce
-			defaultLineR[j] = x_start + j * dx;
-			lineR[j] = defaultLineR[j]; // current real values
-			lineI[j] = defaultI; // current imaginary values
-		}
+	for(int i = 0; i < width; i++){
+		defaultLineR[i] = x_start + i * dx;
+	}
 
-		for (int k = 0; k < limit; k++) // iterace
-		{
+	for(int i = 0; i < height; i++){ // radky
+		int* const rowData = data + i * width; // zacatek dat pro radek
+
+		// inicializace hodnot pro radek
+		const float defaultI = y_start + i * dy;
+		std::fill_n(lineI, width, defaultI);
+		memcpy(lineR, defaultLineR, width * sizeof(float));
+
+		for(int k = 0; k < limit; k++){ // iterace
 			#pragma omp simd
-			for (int j = 0; j < width; j++) // sloupce
-			{
+			for(int j = 0; j < width; j++){ // sloupce
 				const float r2 = lineR[j] * lineR[j];
 				const float i2 = lineI[j] * lineI[j];
 
 				#ifdef USE_ZERO
-				if (r2 + i2 < 4.0f)
-				{
-					data[i * width + j]++;
-				}
+				rowData[j] += (r2 + i2 < 4.0f) ? 1 : 0;
 				#else
-				if (r2 + i2 > 4.0f && data[i * width + j] == limit)
-				{
-					data[i * width + j] = k;
-				}
+				const int val = rowData[j];
+				rowData[j] = (r2 + i2 > 4.0f && val == limit) ? k : val;
 				#endif
 
 				lineI[j] = 2.0f * lineR[j] * lineI[j] + defaultI;

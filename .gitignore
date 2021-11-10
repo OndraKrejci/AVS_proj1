@@ -3,4 +3,9 @@
 *.npz
 
 build/
+build_advisor/
+build_evaluate/
 .vscode/
+
+/AVS-Advisor.*
+/AVS-evaluate.*
