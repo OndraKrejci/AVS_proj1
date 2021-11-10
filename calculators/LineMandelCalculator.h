@@ -20,4 +20,5 @@ private:
     float* lineR;
     float* lineI;
     float* defaultRowR;
+    float* defaultColumnI;
 };

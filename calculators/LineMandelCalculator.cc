@@ -23,6 +23,7 @@ LineMandelCalculator::LineMandelCalculator (unsigned matrixBaseSize, unsigned li
 	lineR = (float*) _mm_malloc(width * sizeof(float), 64);
 	lineI = (float*) _mm_malloc(width * sizeof(float), 64);
 	defaultRowR = (float*) _mm_malloc(width * sizeof(float), 64);
+	defaultColumnI = (float*) _mm_malloc(height * sizeof(float), 64);
 
 	memset(data, 0, height * width * sizeof(int));
 }
@@ -33,10 +34,12 @@ LineMandelCalculator::~LineMandelCalculator(){
 	_mm_free(lineR);
 	_mm_free(lineI);
 	_mm_free(defaultRowR);
+	_mm_free(defaultColumnI);
 	data = NULL;
 	lineR = NULL;
 	lineI = NULL;
 	defaultRowR = NULL;
+	defaultColumnI = NULL;
 }
 
 // implement the calculator & return array of integers
@@ -44,12 +47,15 @@ int* LineMandelCalculator::calculateMandelbrot(){
 	for(int i = 0; i < width; i++){
 		defaultRowR[i] = x_start + i * dx;
 	}
+	for(int i = 0; i < height; i++){
+		defaultColumnI[i] = y_start + i * dy;
+	}
 
 	for(int i = 0; i < height; i++){ // radky
 		int* const rowData = data + i * width; // zacatek dat pro radek
 
 		// inicializace hodnot pro radek
-		const float defaultI = y_start + i * dy;
+		const float defaultI = defaultColumnI[i];
 		std::fill_n(lineI, width, defaultI);
 		memcpy(lineR, defaultRowR, width * sizeof(float));
 
