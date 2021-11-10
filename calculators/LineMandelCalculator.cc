@@ -15,10 +15,10 @@
 
 #include "LineMandelCalculator.h"
 
+// @TODO allocate & prefill memory
 LineMandelCalculator::LineMandelCalculator (unsigned matrixBaseSize, unsigned limit) :
 	BaseMandelCalculator(matrixBaseSize, limit, "LineMandelCalculator")
 {
-	// @TODO allocate & prefill memory
 	data = (int*) _mm_malloc(height * width * sizeof(int), 64);
 	lineR = (float*) _mm_malloc(width * sizeof(float), 64);
 	lineI = (float*) _mm_malloc(width * sizeof(float), 64);
@@ -27,8 +27,8 @@ LineMandelCalculator::LineMandelCalculator (unsigned matrixBaseSize, unsigned li
 	memset(data, 0, height * width * sizeof(int));
 }
 
+// cleanup the memory
 LineMandelCalculator::~LineMandelCalculator() {
-	// @TODO cleanup the memory
 	_mm_free(data);
 	_mm_free(lineR);
 	_mm_free(lineI);
@@ -40,8 +40,8 @@ LineMandelCalculator::~LineMandelCalculator() {
 }
 
 
+// implement the calculator & return array of integers
 int* LineMandelCalculator::calculateMandelbrot(){
-	// @TODO implement the calculator & return array of integers
 	for(int i = 0; i < width; i++){
 		defaultLineR[i] = x_start + i * dx;
 	}
@@ -55,16 +55,20 @@ int* LineMandelCalculator::calculateMandelbrot(){
 		memcpy(lineR, defaultLineR, width * sizeof(float));
 
 		for(int k = 0; k < limit; k++){ // iterace
-			#pragma omp simd
+			unsigned finished = 0;
+
+			#pragma omp simd reduction(+:finished) simdlen(32)
 			for(int j = 0; j < width; j++){ // sloupce
 				const float r2 = lineR[j] * lineR[j];
 				const float i2 = lineI[j] * lineI[j];
 
-				rowData[j] += (r2 + i2 < 4.0f) ? 1 : 0;
+				rowData[j] += (r2 + i2 < 4.0f) ? 1 : (finished++, 0);
 
 				lineI[j] = 2.0f * lineR[j] * lineI[j] + defaultI;
 				lineR[j] = r2 - i2 + defaultLineR[j];
 			}
+
+			if(finished == width) break;
 		}
 	}
 	return data;
