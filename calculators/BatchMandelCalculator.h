@@ -30,7 +30,7 @@ private:
     static constexpr int BATCH_SIZE = 64;
     const int SIZE;
 
-    void mandelbrotIterations(int batchStartIdx, int end = BATCH_SIZE);
+    void mandelbrotIterations(const int batchStartIdx, const int end = BATCH_SIZE);
 };
 
 #endif

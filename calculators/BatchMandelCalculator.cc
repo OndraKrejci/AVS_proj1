@@ -69,9 +69,11 @@ int* BatchMandelCalculator::calculateMandelbrot(){
 }
 
 inline void BatchMandelCalculator::mandelbrotIterations(int batchStartIdx, int end){
+	#pragma omp simd simdlen(32)
 	for(int i = 0; i < end; i++){
-		const int real = (batchStartIdx + i) % width;
-		const int imag = (batchStartIdx + i) / width;
+		const int idx = batchStartIdx + i;
+		const int real = idx % width;
+		const int imag = idx / width;
 		batchR[i] = defaultRowR[real];
 		batchI[i] = defaultColumnI[imag];
 		batchDefaultR[i] = defaultRowR[real];
