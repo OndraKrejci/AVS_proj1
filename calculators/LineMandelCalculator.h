@@ -19,5 +19,5 @@ private:
     int *data;
     float* lineR;
     float* lineI;
-    float* defaultLineR;
+    float* defaultRowR;
 };

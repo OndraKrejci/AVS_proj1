@@ -15,35 +15,34 @@
 
 #include "LineMandelCalculator.h"
 
-// @TODO allocate & prefill memory
+// allocate & prefill memory
 LineMandelCalculator::LineMandelCalculator (unsigned matrixBaseSize, unsigned limit) :
 	BaseMandelCalculator(matrixBaseSize, limit, "LineMandelCalculator")
 {
 	data = (int*) _mm_malloc(height * width * sizeof(int), 64);
 	lineR = (float*) _mm_malloc(width * sizeof(float), 64);
 	lineI = (float*) _mm_malloc(width * sizeof(float), 64);
-	defaultLineR = (float*) _mm_malloc(width * sizeof(float), 64);
+	defaultRowR = (float*) _mm_malloc(width * sizeof(float), 64);
 
 	memset(data, 0, height * width * sizeof(int));
 }
 
 // cleanup the memory
-LineMandelCalculator::~LineMandelCalculator() {
+LineMandelCalculator::~LineMandelCalculator(){
 	_mm_free(data);
 	_mm_free(lineR);
 	_mm_free(lineI);
-	_mm_free(defaultLineR);
+	_mm_free(defaultRowR);
 	data = NULL;
 	lineR = NULL;
 	lineI = NULL;
-	defaultLineR = NULL;
+	defaultRowR = NULL;
 }
-
 
 // implement the calculator & return array of integers
 int* LineMandelCalculator::calculateMandelbrot(){
 	for(int i = 0; i < width; i++){
-		defaultLineR[i] = x_start + i * dx;
+		defaultRowR[i] = x_start + i * dx;
 	}
 
 	for(int i = 0; i < height; i++){ // radky
@@ -52,7 +51,7 @@ int* LineMandelCalculator::calculateMandelbrot(){
 		// inicializace hodnot pro radek
 		const float defaultI = y_start + i * dy;
 		std::fill_n(lineI, width, defaultI);
-		memcpy(lineR, defaultLineR, width * sizeof(float));
+		memcpy(lineR, defaultRowR, width * sizeof(float));
 
 		for(int k = 0; k < limit; k++){ // iterace
 			unsigned finished = 0;
@@ -65,7 +64,7 @@ int* LineMandelCalculator::calculateMandelbrot(){
 				rowData[j] += (r2 + i2 < 4.0f) ? 1 : (finished++, 0);
 
 				lineI[j] = 2.0f * lineR[j] * lineI[j] + defaultI;
-				lineR[j] = r2 - i2 + defaultLineR[j];
+				lineR[j] = r2 - i2 + defaultRowR[j];
 			}
 
 			if(finished == width) break;
