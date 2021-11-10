@@ -17,13 +17,12 @@
 
 #include "BatchMandelCalculator.h"
 
-constexpr int BATCH_SIZE = 64;
-
+// allocate & prefill memory
 BatchMandelCalculator::BatchMandelCalculator (unsigned matrixBaseSize, unsigned limit) :
-	BaseMandelCalculator(matrixBaseSize, limit, "BatchMandelCalculator")
+	BaseMandelCalculator(matrixBaseSize, limit, "BatchMandelCalculator"),
+	SIZE(width * height)
 {
-	// @TODO allocate & prefill memory
-	data = (int*) _mm_malloc(height * width * sizeof(int), 64);
+	data = (int*) _mm_malloc(SIZE * sizeof(int), 64);
 	defaultRowR = (float*) _mm_malloc(width * sizeof(float), 64);
 	defaultColumnI = (float*) _mm_malloc(height * sizeof(float), 64);
 	batchR = (float*) _mm_malloc(BATCH_SIZE * sizeof(float), 64);
@@ -31,11 +30,11 @@ BatchMandelCalculator::BatchMandelCalculator (unsigned matrixBaseSize, unsigned 
 	batchDefaultR = (float*) _mm_malloc(BATCH_SIZE * sizeof(float), 64);
 	batchDefaultI = (float*) _mm_malloc(BATCH_SIZE * sizeof(float), 64);
 
-	memset(data, 0, height * width * sizeof(int));
+	memset(data, 0, SIZE * sizeof(int));
 }
 
-BatchMandelCalculator::~BatchMandelCalculator() {
-	// @TODO cleanup the memory
+// cleanup the memory
+BatchMandelCalculator::~BatchMandelCalculator(){
 	_mm_free(data);
 	_mm_free(defaultRowR);
 	_mm_free(defaultColumnI);
@@ -48,9 +47,8 @@ BatchMandelCalculator::~BatchMandelCalculator() {
 	batchI = NULL;
 }
 
-
+// implement the calculator & return array of integers
 int* BatchMandelCalculator::calculateMandelbrot(){
-	// @TODO implement the calculator & return array of integers
 	for(int i = 0; i < width; i++){
 		defaultRowR[i] = x_start + i * dx;
 	}
@@ -58,41 +56,20 @@ int* BatchMandelCalculator::calculateMandelbrot(){
 		defaultColumnI[i] = y_start + i * dy;
 	}
 
-	const int batchCount = (width * height / BATCH_SIZE);
+	const int batchCount = (SIZE / BATCH_SIZE);
 	for(int batch = 0; batch < batchCount; batch++){ // batches
-		const int batchStartIdx = batch * BATCH_SIZE;
-
-		for(int i = 0; i < BATCH_SIZE; i++){
-			const int real = (batchStartIdx + i) % width;
-			const int imag = (batchStartIdx + i) / width;
-			batchR[i] = defaultRowR[real];
-			batchI[i] = defaultColumnI[imag];
-			batchDefaultR[i] = defaultRowR[real];
-			batchDefaultI[i] = defaultColumnI[imag];
-		}
-
-		for(int k = 0; k < limit; k++){ // iterace
-			unsigned finished = 0;
-			#pragma omp simd reduction(+:finished) simdlen(32)
-			for(int i = 0; i < BATCH_SIZE; i++){ // batch
-				const float r2 = batchR[i] * batchR[i];
-				const float i2 = batchI[i] * batchI[i];
-
-				data[batchStartIdx + i] += (r2 + i2 <= 4.0f) ? 1 : (finished++, 0);
-
-				batchI[i] = 2.0f * batchR[i] * batchI[i] + batchDefaultI[i];
-				batchR[i] = r2 - i2 + batchDefaultR[i];
-			}
-
-			if(finished == BATCH_SIZE) break;
-		}
+		mandelbrotIterations(batch * BATCH_SIZE);
 	}
 
 	// dokroceni
 	const int batchStartIdx = batchCount * BATCH_SIZE;
-	const int remains = (width * height) - batchStartIdx;
+	mandelbrotIterations(batchStartIdx, SIZE - batchStartIdx);
+	
+	return data;
+}
 
-	for(int i = 0; i < remains; i++){
+inline void BatchMandelCalculator::mandelbrotIterations(int batchStartIdx, int end){
+	for(int i = 0; i < end; i++){
 		const int real = (batchStartIdx + i) % width;
 		const int imag = (batchStartIdx + i) / width;
 		batchR[i] = defaultRowR[real];
@@ -103,9 +80,9 @@ int* BatchMandelCalculator::calculateMandelbrot(){
 
 	for(int k = 0; k < limit; k++){ // iterace
 		unsigned finished = 0;
-		
+
 		#pragma omp simd reduction(+:finished) simdlen(32)
-		for(int i = 0; i < remains; i++){ // batch
+		for(int i = 0; i < end; i++){ // batch
 			const float r2 = batchR[i] * batchR[i];
 			const float i2 = batchI[i] * batchI[i];
 
@@ -115,8 +92,6 @@ int* BatchMandelCalculator::calculateMandelbrot(){
 			batchR[i] = r2 - i2 + batchDefaultR[i];
 		}
 
-		if(finished == BATCH_SIZE) break;
+		if(finished == end) break;
 	}
-	return data;
-
 }
