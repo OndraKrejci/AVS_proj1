@@ -15,8 +15,8 @@ public:
     int *calculateMandelbrot();
 
 private:
-    // @TODO add all internal parameters
-    int *data;
+    // add all internal parameters
+    int* data;
     float* lineR;
     float* lineI;
     float* defaultRowR;

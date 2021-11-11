@@ -10,7 +10,7 @@ float dy;
 int limit;
 
 int* calculateMandelbrot () {
-	// @TODO implement the calculator & return array of integers
+	// implement the calculator & return array of integers
 	int *pdata = data;
 	for (int i = 0; i < height; i++)
 	{
