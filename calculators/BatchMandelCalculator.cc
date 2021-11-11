@@ -80,6 +80,8 @@ inline void BatchMandelCalculator::mandelbrotIterations(int batchStartIdx, int e
 		batchDefaultI[i] = defaultColumnI[imag];
 	}
 
+	int* const batchData = data + batchStartIdx;
+
 	for(int k = 0; k < limit; k++){ // iterace
 		unsigned finished = 0;
 
@@ -88,7 +90,7 @@ inline void BatchMandelCalculator::mandelbrotIterations(int batchStartIdx, int e
 			const float r2 = batchR[i] * batchR[i];
 			const float i2 = batchI[i] * batchI[i];
 
-			data[batchStartIdx + i] += (r2 + i2 <= 4.0f) ? 1 : (finished++, 0);
+			batchData[i] += (r2 + i2 <= 4.0f) ? 1 : (finished++, 0);
 
 			batchI[i] = 2.0f * batchR[i] * batchI[i] + batchDefaultI[i];
 			batchR[i] = r2 - i2 + batchDefaultR[i];
