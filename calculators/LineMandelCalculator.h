@@ -1,8 +1,8 @@
 /**
  * @file LineMandelCalculator.h
- * @author FULL NAME <xlogin00@stud.fit.vutbr.cz>
+ * @author Ondřej Krejčí <xkrejc69@stud.fit.vutbr.cz>
  * @brief Implementation of Mandelbrot calculator that uses SIMD paralelization over lines
- * @date DATE
+ * @date 11. 11. 2021
  */
 
 #include <BaseMandelCalculator.h>
