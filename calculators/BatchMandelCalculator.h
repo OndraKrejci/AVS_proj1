@@ -27,7 +27,7 @@ private:
     float* batchDefaultR;
     float* batchDefaultI;
 
-    static constexpr int BATCH_SIZE = 64;
+    static constexpr int BATCH_SIZE = 128;
     const int SIZE;
 
     void mandelbrotIterations(const int batchStartIdx, const int end = BATCH_SIZE);
