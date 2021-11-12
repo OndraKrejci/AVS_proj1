@@ -2,7 +2,7 @@
  * @file BatchMandelCalculator.cc
  * @author Ondřej Krejčí <xkrejc69@stud.fit.vutbr.cz>
  * @brief Implementation of Mandelbrot calculator that uses SIMD paralelization over small batches
- * @date 11. 11. 2021
+ * @date 12. 11. 2021
  */
 
 #include <iostream>
@@ -31,6 +31,13 @@ BatchMandelCalculator::BatchMandelCalculator (unsigned matrixBaseSize, unsigned 
 	batchDefaultI = (float*) _mm_malloc(BATCH_SIZE * sizeof(float), 64);
 
 	memset(data, 0, SIZE * sizeof(int));
+
+	for(int i = 0; i < width; i++){
+		defaultRowR[i] = x_start + i * dx;
+	}
+	for(int i = 0; i < height; i++){
+		defaultColumnI[i] = y_start + i * dy;
+	}
 }
 
 // cleanup the memory
@@ -40,35 +47,36 @@ BatchMandelCalculator::~BatchMandelCalculator(){
 	_mm_free(defaultColumnI);
 	_mm_free(batchR);
 	_mm_free(batchI);
+	_mm_free(batchDefaultR);
+	_mm_free(batchDefaultI);
 	data = NULL;
-	defaultColumnI = NULL;
 	defaultRowR = NULL;
+	defaultColumnI = NULL;
 	batchR = NULL;
 	batchI = NULL;
+	batchDefaultR = NULL;
+	batchDefaultI = NULL;
 }
 
 // implement the calculator & return array of integers
 int* BatchMandelCalculator::calculateMandelbrot(){
-	for(int i = 0; i < width; i++){
-		defaultRowR[i] = x_start + i * dx;
-	}
-	for(int i = 0; i < height; i++){
-		defaultColumnI[i] = y_start + i * dy;
-	}
-
 	const int batchCount = (SIZE / BATCH_SIZE);
 	for(int batch = 0; batch < batchCount; batch++){ // batches
-		mandelbrotIterations(batch * BATCH_SIZE);
+		mandelbrotIterations(batch * BATCH_SIZE, BATCH_SIZE);
 	}
 
 	// dokroceni
 	const int batchStartIdx = batchCount * BATCH_SIZE;
-	mandelbrotIterations(batchStartIdx, SIZE - batchStartIdx);
+	const int end = SIZE - batchStartIdx;
+	if(end){
+		mandelbrotIterations(batchStartIdx, end);
+	}
 	
 	return data;
 }
 
 inline void BatchMandelCalculator::mandelbrotIterations(int batchStartIdx, int end){
+	// inicializace dat pro batch
 	#pragma omp simd simdlen(32)
 	for(int i = 0; i < end; i++){
 		const int idx = batchStartIdx + i;
@@ -80,7 +88,7 @@ inline void BatchMandelCalculator::mandelbrotIterations(int batchStartIdx, int e
 		batchDefaultI[i] = defaultColumnI[imag];
 	}
 
-	int* const batchData = data + batchStartIdx;
+	int* const batchData = data + batchStartIdx; // zacatek dat pro batch
 
 	for(int k = 0; k < limit; k++){ // iterace
 		unsigned finished = 0;
