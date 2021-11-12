@@ -51,11 +51,6 @@ LineMandelCalculator::~LineMandelCalculator(){
 
 // implement the calculator & return array of integers
 int* LineMandelCalculator::calculateMandelbrot(){
-	float* defaultRowR = this->defaultRowR;
-	float* defaultColumnI = this->defaultColumnI;
-	float* lineR = this->lineR;
-	float* lineI = this->lineI;
-
 	for(int i = 0; i < height; i++){ // radky
 		// inicializace hodnot pro radek
 		const float defaultI = defaultColumnI[i];
@@ -67,7 +62,7 @@ int* LineMandelCalculator::calculateMandelbrot(){
 		for(int k = 0; k < limit; k++){ // iterace
 			unsigned finished = 0;
 
-			#pragma omp simd reduction(+:finished) simdlen(32) aligned(defaultRowR, defaultColumnI, lineR, lineI : 64)
+			#pragma omp simd reduction(+:finished) simdlen(32)
 			for(int j = 0; j < width; j++){ // sloupce
 				const float r2 = lineR[j] * lineR[j];
 				const float i2 = lineI[j] * lineI[j];

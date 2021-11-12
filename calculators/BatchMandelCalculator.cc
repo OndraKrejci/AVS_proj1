@@ -76,15 +76,8 @@ int* BatchMandelCalculator::calculateMandelbrot(){
 }
 
 inline void BatchMandelCalculator::mandelbrotIterations(int batchStartIdx, int end){
-	float* defaultRowR = this->defaultRowR;
-	float* defaultColumnI = this->defaultColumnI;
-	float* batchR = this->batchR;
-	float* batchI = this->batchI;
-	float* batchDefaultR = this->batchDefaultR;
-	float* batchDefaultI = this->batchDefaultI;
-
 	// inicializace dat pro batch
-	#pragma omp simd simdlen(32) aligned(defaultRowR, defaultColumnI, batchR, batchI, batchDefaultR, batchDefaultI : 64)
+	#pragma omp simd simdlen(32)
 	for(int i = 0; i < end; i++){
 		const int idx = batchStartIdx + i;
 		const int real = idx % width;
@@ -100,7 +93,7 @@ inline void BatchMandelCalculator::mandelbrotIterations(int batchStartIdx, int e
 	for(int k = 0; k < limit; k++){ // iterace
 		unsigned finished = 0;
 
-		#pragma omp simd reduction(+:finished) simdlen(32) aligned(batchData, batchR, batchI, batchDefaultR, batchDefaultI : 64)
+		#pragma omp simd reduction(+:finished) simdlen(32) aligned(batchData:64)
 		for(int i = 0; i < end; i++){ // batch
 			const float r2 = batchR[i] * batchR[i];
 			const float i2 = batchI[i] * batchI[i];
