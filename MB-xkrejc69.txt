@@ -2,24 +2,36 @@
 
 1. Proč je nutné určovat, zda má výpočet pokračovat?
 ==============================================================================
-
+v obou optimalizovaných implementacích se oproti referenčnímu řešení prohodí vnitřní smyčky, smyčka iterací tak není nejvíce zanořená
+pokud dojde k překročení hodnoty prahové hodnoty, tak výpočet pro dané komplexní číslo končí (číslo iterace uložené do pole data se již dál nemění)
+výpočet ale musí pokračovat dál kvůli dopočítání hodnot pro zbývající čísla ve vnitřní smyčce (buďto řádek nebo batch)
+ve chvíli, kdy došlo k překročení hodnoty 2 u všech hodnot, tak další iterace již probíhají zbytečně (nemohou ovlivnit výsledek)
+pokud by se dokončily zbývající iterace, tak by docházelo k bezdůvodnému zpomalení výpočtu
 
 2. Byla "Line" vektorizace efektivní? Proč?
 ==============================================================================
-
+částečně ano, pomocí vektorizace došlo k viditelnému zvýšení rychlosti, Advisor odhaduje, že vektorizací smyčky pro výpočet řádku se zvýšil výkon téměř 13x
+pro větší rozměry matice než s base = 512 je zrychlení menší ale stále více než trojnásobné
+data pro Line kalkulátor se nevejdou do L1 cache
+výkon je omezen pamětí, což je pravděpodobně dáno přístupem po řádcích, které se celé nevejdou do cache, a pro každou iteraci je tak nutné data načítat znova
 
 3. Jaká byla dosažena výkonnost v Intel Advisoru pro jednotlivé implementace 
 (v GFLOPS)?
 ==============================================================================
-
+ref: 2.25 (summary), 2.301 (smyčka výpočtu ve funkci mandelbrot)
+line: 32.72 (summary), 34.984 (vektorizovaná smyčka výpočtu pro řádek)
+batch: 35.48 (summary), 74.715 (vektorizovaná smyčka výpočtu pro batch)
 
 4. Jaká část kódu byla paralizována v "Line" implementaci? Vyčteme tuto 
 informaci i u batch kalkulátoru?
 ==============================================================================
-
+načítání dat ve smyčce pro řádek při každém provádění smyčky iterací (viz otázka 2)
+u batch kalkulátoru nedochází k omezení výkonu pamětí (pro velikost batch 64 nebo 128, pokud by se velikost nastavila na velikost řádků, tak by nastaly stejné problémy jako u Line kalkulátoru)
 
 5. Co vyčteme z Roofline modelu pro obě vektorizované implementace?
 ==============================================================================
-
-
+# line
+data pro smyčku se nevejdou do L1 cache, výpočet je zpomalován přístupem do paměti
+# batch
+data pro smyčku se vejdou do L1 cache, pro daný výpočet (aritmetická intenzita 0.25 FLOP/byte) je tak výkon téměř maximální
 

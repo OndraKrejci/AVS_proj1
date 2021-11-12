@@ -2,6 +2,7 @@
 *.npz
 
 build/
+build_advisor/
 build_evaluate/
 .vscode/
 
