@@ -25,8 +25,11 @@ batch: 35.48 (summary), 74.715 (vektorizovaná smyčka výpočtu pro batch)
 4. Jaká část kódu byla paralizována v "Line" implementaci? Vyčteme tuto 
 informaci i u batch kalkulátoru?
 ==============================================================================
-načítání dat ve smyčce pro řádek při každém provádění smyčky iterací (viz otázka 2)
-u batch kalkulátoru nedochází k omezení výkonu pamětí (pro velikost batch 64 nebo 128, pokud by se velikost nastavila na velikost řádků, tak by nastaly stejné problémy jako u Line kalkulátoru)
+# line
+byla vektorizována nejvnitřnější smyčka počítající hodnoty pro jeden řádek (tzn. smyčka, která počítá krok výpočtu pro každou položku v řádku pro jednu iteraci)
+# batch
+byla podobně vektorizována nejvnitřnější smyčka počítající hodnoty pro rozsah batch (matice se bere jako lineární pole)
+dále byla vektorizována smyčka předpočítávající hodnoty reálné a imaginární složky pro komplexní čísla v daném batch (výpočet řádků a sloupců odpovídajících hodnotám současného batch)
 
 5. Co vyčteme z Roofline modelu pro obě vektorizované implementace?
 ==============================================================================
